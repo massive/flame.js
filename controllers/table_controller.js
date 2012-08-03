@@ -43,15 +43,19 @@ Flame.TableController = Ember.Object.extend({
             var _data = this.get('_data');
             var length = dataBatch.length;
             var mapping = this.get("_indexFromPathMapping");
-            var cell, index;
-            for (var i = 0; i < length; i++) {
-                cell = dataBatch[i];
-                index = mapping[cell.path.row][cell.path.column];
-                cell.rowHeaderParams = rowLeafs[index[0]].params;
-                cell.columnHeaderParams = columnLeafs[index[1]].params;
-                cell = fields[index[valuesOn === 'row' ? 0 : 1]].createCell(cell);
-                _data[index[0]][index[1]] = cell;
-                dirtyCells.push(index);
+
+            var dataBatchIsValid = length > 0 ? mapping[dataBatch[0].path.row] : false;
+            if (dataBatchIsValid) {
+                var cell, index;
+                for (var i = 0; i < length; i++) {
+                    cell = dataBatch[i];
+                    index = mapping[cell.path.row][cell.path.column];
+                    cell.rowHeaderParams = rowLeafs[index[0]].params;
+                    cell.columnHeaderParams = columnLeafs[index[1]].params;
+                    cell = fields[index[valuesOn === 'row' ? 0 : 1]].createCell(cell);
+                    _data[index[0]][index[1]] = cell;
+                    dirtyCells.push(index);
+                }
             }
             this.set('dirtyCells', dirtyCells);
         }
