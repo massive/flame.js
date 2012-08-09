@@ -34,6 +34,9 @@ Flame.TableController = Ember.Object.extend({
             if (!headers) {
                 throw "Can't push data without first setting headers!";
             }
+
+            if (!this._dataBatchIsForCurrentTable(dataBatch)) return;
+
             var dirtyCells = this.get('dirtyCells').slice(); // clone array
             var valuesOn = this.get('valuesOn');
             var fields = this.get(valuesOn + 'Leafs');
@@ -55,6 +58,12 @@ Flame.TableController = Ember.Object.extend({
             }
             this.set('dirtyCells', dirtyCells);
         }
+    },
+
+    _dataBatchIsForCurrentTable : function(dataBatch) {
+        var length = dataBatch.length;
+        var mapping = this.get("_indexFromPathMapping");
+        return length > 0 ? mapping[dataBatch[0].path.row] : false;
     },
 
     _indexFromPathMapping: function() {
