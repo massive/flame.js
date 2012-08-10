@@ -60,10 +60,15 @@ Flame.TableController = Ember.Object.extend({
         }
     },
 
+    // If report table is changed (e.g. by loading another report or pressing search) during batching,
+    // the table can get out of sync - i.e. callbacks receive batches for now obsolete cells, which in turn would
+    // crash the UI as it would try to access missing cells.
+    // Here we'll ensure that the batch belongs actually to current table by checking if first AND last
+    // item in the batch are accessible.
     _dataBatchIsForCurrentTable : function(dataBatch) {
         var length = dataBatch.length;
         var mapping = this.get("_indexFromPathMapping");
-        return length > 0 ? mapping[dataBatch[0].path.row] : false;
+        return length > 0 ? mapping[dataBatch[0].path.row] && mapping[dataBatch[length-1].path.row] : false;
     },
 
     _indexFromPathMapping: function() {
