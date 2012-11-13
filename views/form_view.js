@@ -258,6 +258,22 @@ Flame.FormView = Flame.View.extend({
         settings.classNames = settings.classNames || [];
         settings.classNames.push("form-view-" + type);
 
+        var disableIf = descriptor.get('disableIf');
+        if (disableIf) {
+            var dependentProperty = disableIf.field.decamelize();
+            var disableIfEquals = disableIf.equals;
+            var setTo = disableIf.setTo;
+
+            settings.isDisabled = Flame.computed.equals('parentView.parentView.object.%@'.fmt(dependentProperty), disableIfEquals);
+            var observedObject = this.get('object');
+            var setIfDisabledCallback = function() { observedObject.set(property, setTo); };
+
+            Ember.addObserver(observedObject, dependentProperty, null, setIfDisabledCallback);
+            settings.willDestroyElement = function() {
+                Ember.removeObserver(observedObject, dependentProperty, null, setIfDisabledCallback);
+            }
+        }
+
         return this._buildControlView(settings, type, descriptor);
     },
 
