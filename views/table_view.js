@@ -92,6 +92,19 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
             }
 
             return false;
+        },
+
+        doubleClick: function(event) {
+            var clickDelegate = this.getPath('owner.tableViewDelegate');
+            if (clickDelegate && clickDelegate.columnHeaderDoubleClicked) {
+                var target = jQuery(event.target), index, header;
+                if (!!target.closest('.column-header').length && (index = target.closest('td').attr('data-leaf-index'))) {
+                    header = this.getPath('owner.content.columnLeafs')[index];
+                    clickDelegate.columnHeaderDoubleClicked(header, target);
+                    return true;
+                }
+            }
+            return false;
         }
     }),
 
@@ -157,15 +170,34 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
         }
     }),
 
+    setColumnWidth: function(columnIndex, cellWidth) {
+        var headerCellWidth = this._getBrowserSpecificHeaderCellWidth(cellWidth);
+        this.$().parent().find('div.column-header').find('colgroup :nth-child(%@)'.fmt(columnIndex + 1)).css('width', '%@px'.fmt(headerCellWidth));
+
+        cellWidth = this._getBrowserSpecificTableCellWidth(cellWidth);
+        var table = this.get('childViews')[0];
+        table.updateColumnWidth(columnIndex, cellWidth);
+    },
+
     _synchronizeColumnWidth: function() {
         // Update data table columns
         var cell = this.get('resizingCell');
         var table = this.get('childViews')[0];
-        var width = parseInt(cell.css('width'), 10);
+        var width = this._getBrowserSpecificTableCellWidth(parseInt(cell.css('width'), 10));
         var index = parseInt(cell.attr('data-leaf-index'), 10);
+        table.updateColumnWidth(index, width);
+    },
+
+    _getBrowserSpecificHeaderCellWidth:function (cellWidth) {
+        if (jQuery.browser.mozilla) cellWidth += 3;
+        if (jQuery.browser.webkit || jQuery.browser.msie) cellWidth += 4;
+        return cellWidth;
+    },
+
+    _getBrowserSpecificTableCellWidth: function(width) {
         if (jQuery.browser.webkit || jQuery.browser.msie) { width += 4; }
         if (jQuery.browser.mozilla) { width -= 2; }
-        table.updateColumnWidth(index, width);
+        return width;
     },
 
     willInsertElement: function() {
