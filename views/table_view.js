@@ -1,6 +1,8 @@
 //= require ./table_data_view
 
 Flame.TableView = Flame.View.extend(Flame.Statechart, {
+    MIN_COLUMN_WIDTH: 30,
+
     classNames: 'flame-table-view'.w(),
     childViews: 'tableDataView'.w(),
     acceptsKeyResponder: false,
@@ -47,8 +49,32 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
         return this.getPath('contentAdapter.rowHeaderRows.maxDepth');
     }.property('contentAdapter.rowHeaderRows').cacheable(),
 
+    /* IE 5-8 trigger mouse events in unorthodox order:
+
+     IE 5-8:        Any sane browser:
+     mousedown      mousedown
+     mouseup        mouseup
+     click          click
+     mouseup        mousedown
+     dblclick       mouseup
+                    click
+                    dblclick
+
+     Normally, the dblclick event works as expected, because the mouseup event is not be triggered for idle state
+     if mouseDown precedes it (because mouseup event is handled in resizing state). However, because IE8 triggers
+     two mouseups but only one mousedown for a dblclick event, the mouseUp function is called for idle state - which
+     in turn opens the sort order panel.
+
+     By adding another state we can mitigate the issue. The mousedown event puts the view into clickInProgress
+     state, and in clickInProgress mouseup returns it back to idle state. It works as before. However, if user clicks
+     the resize-handle the view goes to resizing state. The first mouseup event moves the view back to idle state, where
+     the second redundant mouseup gets eaten silently.
+
+    */
     idle: Flame.State.extend({
         mouseDown: function(event) {
+            this.gotoState('clickInProgress');
+
             var target = jQuery(event.target);
             if (target.is('div.resize-handle')) {
                 this.gotoState('resizing');
@@ -69,7 +95,23 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
             return false;
         },
 
+        doubleClick: function(event) {
+            var clickDelegate = this.getPath('owner.tableViewDelegate');
+            if (clickDelegate && clickDelegate.columnHeaderDoubleClicked) {
+                var target = jQuery(event.target), index, header;
+                if (!!target.closest('.column-header').length && (index = target.closest('td').attr('data-leaf-index'))) {
+                    header = this.getPath('owner.content.columnLeafs')[index];
+                    clickDelegate.columnHeaderDoubleClicked(header, target);
+                    return true;
+                }
+            }
+            return false;
+        }
+    }),
+
+    clickInProgress: Flame.State.extend({
         mouseUp: function(event) {
+            this.gotoState('idle');
             var clickDelegate = this.getPath('owner.tableViewDelegate');
             if (clickDelegate && clickDelegate.columnHeaderClicked) {
                 var target = jQuery(event.target), index, header;
@@ -92,19 +134,6 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
             }
 
             return false;
-        },
-
-        doubleClick: function(event) {
-            var clickDelegate = this.getPath('owner.tableViewDelegate');
-            if (clickDelegate && clickDelegate.columnHeaderDoubleClicked) {
-                var target = jQuery(event.target), index, header;
-                if (!!target.closest('.column-header').length && (index = target.closest('td').attr('data-leaf-index'))) {
-                    header = this.getPath('owner.content.columnLeafs')[index];
-                    clickDelegate.columnHeaderDoubleClicked(header, target);
-                    return true;
-                }
-            }
-            return false;
         }
     }),
 
@@ -114,7 +143,7 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
             var cell = this.getPath('owner.resizingCell');
             var deltaX = event.pageX - this.getPath('owner.dragStartX');
             var cellWidth = this.getPath('owner.startX') + deltaX;
-            if (cellWidth < 30) { cellWidth = 30; }
+            if (cellWidth < this.MIN_COLUMN_WIDTH) { cellWidth = this.MIN_COLUMN_WIDTH; }
             var leafIndex;
             // Adjust size of the cell
             if (this.getPath('owner.type') === 'column') { // Update data table column width
@@ -178,6 +207,14 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
         var table = this.get('childViews')[0];
         table.updateColumnWidth(columnIndex, cellWidth);
     },
+
+    resizedColumnDidChange: function(sender, key, changes) {
+        if (changes) {
+            var width = changes.width;
+            if (width < this.MIN_COLUMN_WIDTH) width = this.MIN_COLUMN_WIDTH;
+            this.setColumnWidth(changes.index, width);
+        }
+    }.observes('content.resizedColumn'),
 
     _synchronizeColumnWidth: function() {
         // Update data table columns

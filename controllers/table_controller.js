@@ -12,6 +12,10 @@ Flame.TableController = Ember.Object.extend({
     valuesOn: 'column',
     isLoading: false,
 
+    resizedColumn: null,
+    tableDataBinding: '_data',
+    headerDataBinding: '_headers',
+
     /**
       Takes in an array of cell value objects, e.g.
       [{path: [2,3,8,5], value: 'MRP', count: 1, all_equal: true}, {...}]
