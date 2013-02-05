@@ -12,7 +12,6 @@ Flame.TableController = Ember.Object.extend({
     valuesOn: 'column',
     isLoading: false,
 
-    resizedColumn: null,
     tableDataBinding: '_data',
     headerDataBinding: '_headers',
 

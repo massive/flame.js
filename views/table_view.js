@@ -27,6 +27,7 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
     content: null,  // Set to a Flame.TableController
     allowRefresh: true,
     batchUpdates: true,
+    useAutoWidth: false,
 
     contentAdapter: function() {
         return Flame.TableViewContentAdapter.create({
@@ -96,14 +97,25 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
         },
 
         doubleClick: function(event) {
-            var clickDelegate = this.getPath('owner.tableViewDelegate');
-            if (clickDelegate && clickDelegate.columnHeaderDoubleClicked) {
-                var target = jQuery(event.target), index, header;
-                if (!!target.closest('.column-header').length && (index = target.closest('td').attr('data-leaf-index'))) {
-                    header = this.getPath('owner.content.columnLeafs')[index];
-                    clickDelegate.columnHeaderDoubleClicked(header, target);
-                    return true;
-                }
+            var owner = this.get('owner');
+            if (!owner.get('useAutoWidth')) return false;
+
+            var target = jQuery(event.target), index, header;
+            if (!!target.closest('.column-header').length && (index = target.closest('td').attr('data-leaf-index'))) {
+                header = this.getPath('owner.content.columnLeafs')[index];
+
+                var columnDataAsString = owner.getColumnContents(header).map(function(e) { return e; }).join("<br/>");
+                var columnDimension = Flame.measureString(columnDataAsString, 'ember-view');
+
+                var isBold = target.closest('td').css("font-weight") == "bold";
+                var headerLabelDimension = Flame.measureString(owner.getLeafHeaderLabel(header), 'ember-view', 'label', isBold ? "font-weight:bold;" : '');
+
+                var width = Math.max(columnDimension.width, headerLabelDimension.width) + 20;
+
+                if (width < owner.MIN_COLUMN_WIDTH) width = owner.MIN_COLUMN_WIDTH;
+                owner.setColumnWidth(header.leafIndex, width);
+
+                return true;
             }
             return false;
         }
@@ -208,13 +220,17 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
         table.updateColumnWidth(columnIndex, cellWidth);
     },
 
-    resizedColumnDidChange: function(sender, key, changes) {
-        if (changes) {
-            var width = changes.width;
-            if (width < this.MIN_COLUMN_WIDTH) width = this.MIN_COLUMN_WIDTH;
-            this.setColumnWidth(changes.index, width);
-        }
-    }.observes('content.resizedColumn'),
+    getColumnContents: function(columnHeader) {
+        return this.getPath("content.tableData").map(function(e) {
+            var elem = e[columnHeader.leafIndex];
+            return Ember.none(elem) ? '' : elem.formattedValue();
+        });
+    },
+
+    getLeafHeaderLabel: function(header) {
+        var leaf = this.getPath("content.columnLeafs")[header.leafIndex];
+        return leaf.get("headerLabel");
+    },
 
     _synchronizeColumnWidth: function() {
         // Update data table columns
