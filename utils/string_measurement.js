@@ -1,14 +1,8 @@
 Ember.mixin(Flame, {
     _setupStringMeasurement: function(parentClasses, elementClasses, additionalStyles) {
-        if (!parentClasses) {
-            parentClasses = '';
-        }
-        if (!elementClasses) {
-            elementClasses = '';
-        }
-        if (!additionalStyles) {
-            additionalStyles = '';
-        }
+        if (!parentClasses) parentClasses = '';
+        if (!elementClasses) elementClasses = '';
+        if (!additionalStyles) additionalStyles = '';
 
         var element = this._metricsCalculationElement;
         if (!element) {

@@ -61,15 +61,15 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
                     click
                     dblclick
 
-     Normally, the dblclick event works as expected, because the mouseup event is not be triggered for idle state
+     Normally, the dblclick event works as expected, because the mouseup event is not being triggered for idle state
      if mouseDown precedes it (because mouseup event is handled in resizing state). However, because IE8 triggers
      two mouseups but only one mousedown for a dblclick event, the mouseUp function is called for idle state - which
      in turn opens the sort order panel.
 
      By adding another state we can mitigate the issue. The mousedown event puts the view into clickInProgress
-     state, and in clickInProgress mouseup returns it back to idle state. It works as before. However, if user clicks
-     the resize-handle the view goes to resizing state. The first mouseup event moves the view back to idle state, where
-     the second redundant mouseup gets eaten silently.
+     state, and in clickInProgress mouseup returns it back to idle state. So, the state transition works as before.
+     However, if user clicks the resize-handle the view goes to resizing state. The first mouseup event moves the view
+     back to idle state, where the second redundant mouseup gets eaten silently.
 
     */
     idle: Flame.State.extend({
@@ -104,13 +104,13 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
             if (!!target.closest('.column-header').length && (index = target.closest('td').attr('data-leaf-index'))) {
                 header = this.getPath('owner.content.columnLeafs')[index];
 
-                var columnDataAsString = owner.getColumnContents(header).map(function(e) { return e; }).join("<br/>");
-                var columnDimension = Flame.measureString(columnDataAsString, 'ember-view');
+                var columnDataAsString = owner.getColumnContents(header).map(function(e) { return e; }).join("<br />");
+                var columnDimensions = Flame.measureString(columnDataAsString, 'ember-view');
 
                 var isBold = target.closest('td').css("font-weight") == "bold";
-                var headerLabelDimension = Flame.measureString(owner.getLeafHeaderLabel(header), 'ember-view', 'label', isBold ? "font-weight:bold;" : '');
+                var headerLabelDimensions = Flame.measureString(owner.getLeafHeaderLabel(header), 'ember-view', 'label', isBold ? "font-weight:bold;" : '');
 
-                var width = Math.max(columnDimension.width, headerLabelDimension.width) + 20;
+                var width = Math.max(columnDimensions.width, headerLabelDimensions.width) + 40;
 
                 if (width < owner.MIN_COLUMN_WIDTH) width = owner.MIN_COLUMN_WIDTH;
                 owner.setColumnWidth(header.leafIndex, width);
@@ -241,7 +241,7 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
         table.updateColumnWidth(index, width);
     },
 
-    _getBrowserSpecificHeaderCellWidth:function (cellWidth) {
+    _getBrowserSpecificHeaderCellWidth: function(cellWidth) {
         if (jQuery.browser.mozilla) cellWidth += 3;
         if (jQuery.browser.webkit || jQuery.browser.msie) cellWidth += 4;
         return cellWidth;
