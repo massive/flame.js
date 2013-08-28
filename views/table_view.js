@@ -245,7 +245,7 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
     },
 
     _getBrowserSpecificTableCellWidth: function(width) {
-        return width +3;
+        return width + 3;
     },
 
     willInsertElement: function() {
