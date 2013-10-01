@@ -21,6 +21,8 @@ Ember.mixin(Flame, {
     },
 
     measureString: function(string, parentClasses, elementClasses, additionalStyles) {
+        if (!document.body) return { width: 0, height: 0 };
+
         var element = this._setupStringMeasurement(parentClasses, elementClasses, additionalStyles);
         element.innerHTML = string;
         return {
