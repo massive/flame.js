@@ -100,33 +100,44 @@ Flame.LazyListView = Flame.ListView.extend({
         this._lastScrollHeight = scrollHeight;
         this._lastScrollTop = scrollTop;
 
+        var startTime = new Date();
         var range = this._rowsToRenderRange(scrollHeight, scrollTop);
+        var recycledViews = 0;
+        var totalViews = 0;
         var min = range.end, max = range.start;
         this.forEachChildView(function(view) {
             var contentIndex = view.get('contentIndex');
+            totalViews++;
             if (typeof contentIndex !== 'undefined') {
                 if (contentIndex < range.start || contentIndex > range.end) {
                     // This view is no longer visible, recycle it if it's not being dragged
-                    if (!view.get('isDragged')) this._recycleView(view);
+                    if (!view.get('isDragged')) {
+                        this._recycleView(view);
+                        recycledViews++;
+                    }
                 } else {
                     min = Math.min(min, contentIndex);
                     max = Math.max(max, contentIndex);
                 }
             }
         });
-
+//        console.log("forEachChildView took %@ ms (Recycled %@ / %@ views)".fmt(new Date() - startTime, recycledViews, totalViews));
+        startTime = new Date();
         // Fill up empty gap on top
         var i;
         if (min === range.end) min++;
         for (i = range.start; i < min; i++) {
             this.viewForRow(i);
         }
+//        console.log("empty gap on top took %@ ms".fmt(new Date() - startTime));
+        startTime = new Date();
         // Fill up empty gap on bottom
         if (max !== range.start) {
             for (i = range.end; i > max; i--) {
                 this.viewForRow(i);
             }
         }
+//        console.log("empty gap on bottom took %@ ms".fmt(new Date() - startTime));
     },
 
     /**

@@ -84,30 +84,60 @@ Ember.mixin(Flame, {
             return this.current();
         }.property().volatile(),
 
+
+        _typeOf: function(view) {
+            var i;
+            var types = "Flame.TableDataView Flame.SearchTextFieldView Rui.NotificationPane Rui.ManyToManyPanel Ember.TextField".w();
+            for (i = 0; i < types.length; i++) {
+                var constructor = Ember.getPath(types[i]);
+                if (!Ember.none(constructor) && view instanceof constructor) {
+                    return types[i];
+                }
+            }
+            var namespaces = "Flame Rui Ember".w();
+            var re = /^[A-Z]/;
+            for (i = 0; i < namespaces.length; i++) {
+                var namespace = window[namespaces[i]];
+                for (var prop in namespace) {
+                    if (namespace.hasOwnProperty(prop) && typeof namespace[prop] === "function" && re.test(prop) && view instanceof namespace[prop]) {
+                        return prop;
+                    }
+                }
+            }
+            return "";
+        },
+
+        _stackToString: function() {
+            var names = this._stack.map(function(v) { return this._typeOf(v); }, this)
+            return "[ %@ ]".fmt(names.join(", "));
+        },
+
         current: function() {
             var length = this._stack.get('length');
             if (length > 0) return this._stack.objectAt(length - 1);
             else return undefined;
         },
 
-        push: function(view) {
+        push: function(view, ignore) {
             if (!Ember.none(view)) {
                 if (view.willBecomeKeyResponder) view.willBecomeKeyResponder();
-                //console.log('View %s became key responder', Ember.guidFor(view));
+//                console.log('View %s became key responder%s', Ember.guidFor(view), this._typeOf(view));
                 if (view.set && !view.isDestroyed) view.set('isFocused', true);
                 this._stack.push(view);
+                if (!ignore) console.log("#push -> %s", this._stackToString());
                 if (view.didBecomeKeyResponder) view.didBecomeKeyResponder();
                 this.propertyDidChange('currentKeyResponder');
             }
             return view;
         },
 
-        pop: function() {
+        pop: function(ignore) {
             if (this._stack.get('length') > 0) {
                 var current = this.current();
                 if (current && current.willLoseKeyResponder) current.willLoseKeyResponder();  // Call before popping, could make a difference
                 var view = this._stack.pop();
-                //console.log('View %s will lose key responder', Ember.guidFor(view));
+                if (!ignore) console.log("#pop -> %s", this._stackToString());
+//                console.log('View %s will lose key responder%s', Ember.guidFor(view), this._typeOf(view));
                 if (view.set && !view.isDestroyed) view.set('isFocused', false);
                 if (view.didLoseKeyResponder) view.didLoseKeyResponder();
                 this.propertyDidChange('currentKeyResponder');
@@ -118,8 +148,15 @@ Ember.mixin(Flame, {
 
         replace: function(view) {
             if (this.current() !== view) {
-                this.pop();
-                return this.push(view);
+                console.log("keyResponderStack#replace");
+                var oldTop = this.pop(true);
+                var length = this._stack.get("length");
+                if (this.current() === view) {
+                    console.log("Topmost two views are soon the same");
+                }
+                var res = this.push(view, true);
+                console.log("#replace -> %s", this._stackToString());
+                return res;
             }
         }
     }).create()

@@ -88,23 +88,42 @@ Flame.Statechart = {
         }
     },
 
-    gotoState: function(stateName) {
-        Ember.assert("Cannot go to an undefined or null state!", !Ember.none(stateName));
+    _getCurrentStateName: function() {
+        var stateName = "<UNKNOWN>";
         var currentState = this.get('currentState');
-        var newState = this.get(stateName);
+        if (Ember.none(currentState)) return "<NOT SET>"
+        for (var propName in this) {
+            if (this.hasOwnProperty(propName) && Ember.get(this, propName) === currentState) {
+                stateName = propName;
+                break;
+            }
+        }
+        return stateName;
+    },
+
+    gotoState: function(newStateName) {
+        Ember.assert("Cannot go to an undefined or null state!", !Ember.none(newStateName));
+        var currentState = this.get('currentState');
+        var newState = this.get(newStateName);
         //do nothing if we are already in the state to go to
         if (currentState === newState) {
             return;
         }
+        var initalStateName = this.get("initialState");
+//        if (newStateName !== "<NOT SET>") {
+//        if (newStateName != initalStateName) {
+            var currentStateName = this._getCurrentStateName();
+//            if (currentStateName !== "<NOT SET>") Ember.Logger.log("StateChange: %@ -> %@".fmt(currentStateName, newStateName));
+//        }
         if (!Ember.none(newState) && newState instanceof Flame.State) {
             if (!Ember.none(currentState)) {
                 if (currentState.exitState) currentState.exitState();
             }
-            this._currentStateName = stateName;
+            this._currentStateName = newStateName;
             this.set('currentState', newState);
             if (newState.enterState) newState.enterState();
         } else {
-            throw new Error("%@ is not a state!".fmt(stateName));
+            throw new Error("%@ is not a state!".fmt(newStateName));
         }
     },
 

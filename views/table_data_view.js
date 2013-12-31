@@ -363,6 +363,7 @@ Flame.TableDataView = Flame.View.extend(Flame.Statechart, {
     willLoseKeyResponder: function() {
         this.gotoState('loaded');
         this.set('selectedCell', null);
+        console.log("Set selectedCell to null (#willLoseKeyResponder@%@)".fmt(new Date()-0));
     },
 
     // Get the Cell instance that corresponds to the selected cell in the view
@@ -435,6 +436,7 @@ Flame.TableDataView = Flame.View.extend(Flame.Statechart, {
 
     // Returns true if cell valid, or false otherwise
     _validateAndSet: function(newValue) {
+        console.log("Call to #_validateAndSet %@)".fmt(new Date()-0));
         var data = this.get('data');
         var selectedCell = this.get('selectedCell');
         var columnIndex = parseInt(selectedCell.attr('data-index'), 10);
@@ -477,6 +479,7 @@ Flame.TableDataView = Flame.View.extend(Flame.Statechart, {
     selectCell: function(newSelection) {
         if (this.getPath('parentView.allowSelection') && this.isCellSelectable(newSelection)) {
             this.set('selectedCell', newSelection);
+            console.log("Set selectedCell to %@ (#selectCell@%@)".fmt(Ember.typeOf(newSelection), new Date()-0));
             return true;
         }
         return false;
@@ -499,6 +502,7 @@ Flame.TableDataView = Flame.View.extend(Flame.Statechart, {
     render: function(buffer) {
         this._renderElementAttributes(buffer);
         this.set('selectedCell', null);
+        console.log("Set selectedCell to null (#render@%@)".fmt(new Date()-0));
         this.gotoState('loaded');
         this._renderTable(buffer);
     },
