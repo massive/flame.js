@@ -51,32 +51,8 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
         return this.getPath('contentAdapter.rowHeaderRows.maxDepth');
     }.property('contentAdapter.rowHeaderRows'),
 
-    /* IE 5-8 trigger mouse events in unorthodox order:
-
-     IE 5-8:        Any sane browser:
-     mousedown      mousedown
-     mouseup        mouseup
-     click          click
-     mouseup        mousedown
-     dblclick       mouseup
-                    click
-                    dblclick
-
-     Normally, the dblclick event works as expected, because the mouseup event is not being triggered for idle state
-     if mouseDown precedes it (because mouseup event is handled in resizing state). However, because IE8 triggers
-     two mouseups but only one mousedown for a dblclick event, the mouseUp function is called for idle state - which
-     in turn opens the sort order panel.
-
-     By adding another state we can mitigate the issue. The mousedown event puts the view into clickInProgress
-     state, and in clickInProgress mouseup returns it back to idle state. So, the state transition works as before.
-     However, if user clicks the resize-handle the view goes to resizing state. The first mouseup event moves the view
-     back to idle state, where the second redundant mouseup gets eaten silently.
-
-    */
     idle: Flame.State.extend({
         mouseDown: function(event) {
-            this.gotoState('clickInProgress');
-
             var target = jQuery(event.target);
             if (target.is('div.resize-handle')) {
                 this.gotoState('resizing');
@@ -92,6 +68,31 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
                 return true;
             } else if (target.is('a')) {
                 return true;
+            }
+
+            return false;
+        },
+
+        mouseUp: function(event) {
+            var clickDelegate = this.getPath('owner.tableViewDelegate');
+            if (clickDelegate && clickDelegate.columnHeaderClicked) {
+                var target = jQuery(event.target), index, header;
+                if (!!target.closest('.column-header').length && (index = target.closest('td').attr('data-leaf-index'))) {
+                    if (clickDelegate.columnHeaderClicked) {
+                        header = this.getPath('owner.content.columnLeafs')[index];
+                        clickDelegate.columnHeaderClicked(header, target);
+                    }
+                    return true;
+                } else if (!!target.closest('.row-header').length) {
+                    if (clickDelegate.rowHeaderClicked) {
+                        var cell = target.closest('td');
+                        index = parseInt(cell.attr('data-index'), 10);
+                        header = this.getPath('owner.content._headers.rowHeaders')[index];
+                        if (!header) { return false; }
+                        clickDelegate.rowHeaderClicked(header, target, index);
+                    }
+                    return true;
+                }
             }
 
             return false;
@@ -118,34 +119,6 @@ Flame.TableView = Flame.View.extend(Flame.Statechart, {
 
                 return true;
             }
-            return false;
-        }
-    }),
-
-    clickInProgress: Flame.State.extend({
-        mouseUp: function(event) {
-            this.gotoState('idle');
-            var clickDelegate = this.getPath('owner.tableViewDelegate');
-            if (clickDelegate && clickDelegate.columnHeaderClicked) {
-                var target = jQuery(event.target), index, header;
-                if (!!target.closest('.column-header').length && (index = target.closest('td').attr('data-leaf-index'))) {
-                    if (clickDelegate.columnHeaderClicked) {
-                        header = this.getPath('owner.content.columnLeafs')[index];
-                        clickDelegate.columnHeaderClicked(header, target);
-                    }
-                    return true;
-                } else if (!!target.closest('.row-header').length) {
-                    if (clickDelegate.rowHeaderClicked) {
-                        var cell = target.closest('td');
-                        index = parseInt(cell.attr('data-index'), 10);
-                        header = this.getPath('owner.content._headers.rowHeaders')[index];
-                        if (!header) { return false; }
-                        clickDelegate.rowHeaderClicked(header, target, index);
-                    }
-                    return true;
-                }
-            }
-
             return false;
         }
     }),

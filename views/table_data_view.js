@@ -369,6 +369,7 @@ Flame.TableDataView = Flame.View.extend(Flame.Statechart, {
     // Get the Cell instance that corresponds to the selected cell in the view
     selectedDataCell: function() {
         var selectedCell = this.get('selectedCell');
+        if (selectedCell == null) { console.error("BOOM"); return; }
         return this.get('data')[selectedCell.parent().attr('data-index')][selectedCell.attr('data-index')];
     }.property().volatile(),
 
@@ -437,6 +438,7 @@ Flame.TableDataView = Flame.View.extend(Flame.Statechart, {
     // Returns true if cell valid, or false otherwise
     _validateAndSet: function(newValue) {
         console.log("Call to #_validateAndSet %@)".fmt(new Date()-0));
+        console.trace();
         var data = this.get('data');
         var selectedCell = this.get('selectedCell');
         var columnIndex = parseInt(selectedCell.attr('data-index'), 10);

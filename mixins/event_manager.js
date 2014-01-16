@@ -124,7 +124,7 @@ Ember.mixin(Flame, {
 //                console.log('View %s became key responder%s', Ember.guidFor(view), this._typeOf(view));
                 if (view.set && !view.isDestroyed) view.set('isFocused', true);
                 this._stack.push(view);
-                if (!ignore) console.log("#push -> %s", this._stackToString());
+                if (!ignore) console.log("#push "+view+" -> %s", this._stackToString());
                 if (view.didBecomeKeyResponder) view.didBecomeKeyResponder();
                 this.propertyDidChange('currentKeyResponder');
             }
@@ -152,6 +152,7 @@ Ember.mixin(Flame, {
                 var oldTop = this.pop(true);
                 var length = this._stack.get("length");
                 if (this.current() === view) {
+                    console.trace();
                     console.log("Topmost two views are soon the same");
                 }
                 var res = this.push(view, true);
@@ -260,8 +261,13 @@ Flame.EventManager = {
         // view handles the event, returns false.
         _dispatch: function(eventName, event, view) {
             var handler = view.get(eventName);
+
             if (handler) {
                 var result = handler.call(view, event, view);
+                if (eventName != "mouseMove") {
+                    console.log("Event %@ %@ fired in %@ for %@".fmt(event.timeStamp, eventName, view._currentStateName, view));
+                    console.log("result: "+result+ " id: "+event.timeStamp);
+                }
                 if (result === Flame.ALLOW_BROWSER_DEFAULT_HANDLING) return false;
                 else if (result) return view;
             }

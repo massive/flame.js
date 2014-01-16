@@ -113,7 +113,11 @@ Flame.Statechart = {
 //        if (newStateName !== "<NOT SET>") {
 //        if (newStateName != initalStateName) {
             var currentStateName = this._getCurrentStateName();
-//            if (currentStateName !== "<NOT SET>") Ember.Logger.log("StateChange: %@ -> %@".fmt(currentStateName, newStateName));
+            if (currentStateName !== "<NOT SET>") {
+                Ember.Logger.log(this+" StateChange: %@ -> %@".fmt(currentStateName, newStateName));
+                console.trace();
+            }
+
 //        }
         if (!Ember.none(newState) && newState instanceof Flame.State) {
             if (!Ember.none(currentState)) {
@@ -142,6 +146,7 @@ Flame.Statechart = {
         Ember.assert("Cannot invoke state method without having a current state!", !Ember.none(state) && state instanceof Flame.State);
         var method = state[methodName];
         if (Ember.typeOf(method) === "function") {
+            console.log("Invoking %@".fmt(methodName));
             return method.apply(state, args);
         }
     }
