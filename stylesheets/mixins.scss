@@ -38,7 +38,3 @@ $default-font-size: 13px;
 @mixin control-blur() {
     box-shadow: 0 0 0 2px #9bc8f6;
 }
-
-@mixin user-select($user-select) {
-    user-select: $user-select;
-}

@@ -36,7 +36,7 @@
         border-top: 1px solid #999;
         @include inner-shadow-blur(1px, 1px, #dfdfdf);
         border-radius: 2px;
-        @include user-select(auto);
+        user-select: auto;
         outline: none;
 
         &.is-invalid {

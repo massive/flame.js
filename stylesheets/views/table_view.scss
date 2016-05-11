@@ -72,7 +72,7 @@
         z-index: 3;
         overflow: hidden;
         white-space: nowrap;
-        @include user-select(text);
+        user-select: text;
     }
 
     .clickable {
@@ -89,10 +89,10 @@
 
     .flame-table {
         background-color: white;
-        @include user-select(none);
+        user-select: none;
 
         &.is-selectable {
-            @include user-select(auto);
+            user-select: auto;
         }
     }
 
