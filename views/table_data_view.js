@@ -28,8 +28,9 @@ Flame.TableDataView = Flame.View.extend(Flame.Statechart, {
     selected: Flame.State.extend({
         mouseDown: function(event) {
             var target = jQuery(event.target);
+            var selectedDataCell = this.getPath('owner.selectedDataCell');
             // If a cell is clicked that was already selected, start editing it
-            if (target.hasClass('table-selection') && this.getPath('owner.selectedDataCell.options')) {
+            if (target.hasClass('table-selection') && selectedDataCell.options && selectedDataCell.options()) {
                 this.startEdit();
                 return true;
             } else return !!this.get('owner').selectCell(target);
@@ -248,11 +249,17 @@ Flame.TableDataView = Flame.View.extend(Flame.Statechart, {
         mouseDown: function(event) {
             var owner = this.get('owner');
             var cell = jQuery(event.target);
+            var editField = owner.get('editField');
             if (owner.isCellSelectable(cell) && owner._confirmEdit()) {
                 this.gotoState('selected');
                 owner.selectCell(cell);
                 return true;
-            } else { return false; }
+            } else if (cell && editField && cell[0] !== editField[0] && !owner._confirmEdit()) {
+                editField.focus();
+                return true;
+            } else {
+                return false;
+            }
         },
 
         enterState: function() {
@@ -299,8 +306,8 @@ Flame.TableDataView = Flame.View.extend(Flame.Statechart, {
                         backgroundColor: backgroundColor
                     });
                     var editValue = owner.editableValue(dataCell);
-
                     editCell.val(editValue);
+                    editCell.attr('placeholder', dataCell.placeholder());
                     owner.set('editValue', null);
                     editCell.show();
                     // Put cursor at end of value
@@ -516,9 +523,15 @@ Flame.TableDataView = Flame.View.extend(Flame.Statechart, {
     // Mark and disable updating cells
     _updatingCellsDidChange: function() {
         this.manipulateCells(this.get('cellsMarkedForUpdate'), function(cell, element, isEvenColumn) {
-            cell.isUpdating = true;
-            var cssClassesString = cell.cssClassesString() + (isEvenColumn ? " even-col" : " odd-col");
-            element.className = cssClassesString;
+            if (cell.pending) {
+                // Cell isn't loaded yet, insert a placeholder value
+                cell.pending.isUpdating = true;
+                element.className += (isEvenColumn ? " even-col" : " odd-col");
+            } else {
+                cell.isUpdating = true;
+                var cssClassesString = cell.cssClassesString() + (isEvenColumn ? " even-col" : " odd-col");
+                element.className = cssClassesString;
+            }
         });
     }.observes('cellsMarkedForUpdate'),
 
@@ -548,6 +561,10 @@ Flame.TableDataView = Flame.View.extend(Flame.Statechart, {
         for (var i = startIx; i < len && (i - startIx) < upTo; i++) {
             index = cellRefs[i];
             var x = index[0], y = index[1];
+            if (!data[x][y]) {
+                // Possibly updating a cell that's still being batch loaded, insert a placeholder for update attributes
+                data[x][y] = {pending: {}};
+            }
             cell = data[x][y];
             element = allCells[x * columnLength + y];
             if (element) {

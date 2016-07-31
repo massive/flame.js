@@ -34,6 +34,9 @@ Flame.TableController = Ember.Object.extend({
             if (!headers) {
                 throw "Can't push data without first setting headers!";
             }
+
+            if (!this._dataBatchIsForCurrentTable(dataBatch)) return;
+
             var dirtyCells = this.get('dirtyCells').slice(); // clone array
             var valuesOn = this.get('valuesOn');
             var fields = this.get(valuesOn + 'Leafs');
@@ -44,17 +47,37 @@ Flame.TableController = Ember.Object.extend({
             var length = dataBatch.length;
             var mapping = this.get("_indexFromPathMapping");
             var cell, index;
+            var existingObject;
             for (var i = 0; i < length; i++) {
                 cell = dataBatch[i];
                 index = mapping[cell.path.row][cell.path.column];
                 cell.rowHeaderParams = rowLeafs[index[0]].params;
                 cell.columnHeaderParams = columnLeafs[index[1]].params;
                 cell = fields[index[valuesOn === 'row' ? 0 : 1]].createCell(cell);
+                // Cell attributes might have been updated before it's loaded (for example isUpdating might be set while data is still being batched),
+                // in this case pending attributes are recorded in a placeholder object with "pending" attribute.
+                existingObject = _data[index[0]][index[1]];
+                if (existingObject && existingObject.pending) {
+                    for (var pendingAttributeName in existingObject.pending) {
+                        cell[pendingAttributeName] = existingObject.pending[pendingAttributeName];
+                    }
+                }
                 _data[index[0]][index[1]] = cell;
                 dirtyCells.push(index);
             }
             this.set('dirtyCells', dirtyCells);
         }
+    },
+
+    // If the table is changed (e.g. by loading another data set into it) during batching,
+    // it can get out of sync - i.e. callbacks receive batches for now obsolete cells, which in turn would
+    // crash the UI as it would try to access missing cells.
+    // Here we'll ensure that the batch belongs actually to current table by checking if first AND last
+    // item in the batch are accessible.
+    _dataBatchIsForCurrentTable : function(dataBatch) {
+        var length = dataBatch.length;
+        var mapping = this.get("_indexFromPathMapping");
+        return length > 0 ? mapping[dataBatch[0].path.row] && mapping[dataBatch[length-1].path.row] : false;
     },
 
     _indexFromPathMapping: function() {
